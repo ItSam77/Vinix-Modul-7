@@ -1,82 +1,58 @@
-# Auto MPG Dashboard 🚗
+Berikut adalah dashboard interaktif untuk analisis data Auto MPG dengan visualisasi dinamis dan filter interaktif.
 
-An interactive Panel-based dashboard for visualizing automobile fuel efficiency data.
+Bagaimana cara menjalankan dashboard ini?
 
-## Features
-
-- **Interactive Filters**: Filter by origin, model year, and number of cylinders
-- **Multiple Visualizations**:
-  - MPG vs Weight scatter plot (colored by horsepower)
-  - MPG distribution histogram
-  - Average MPG by origin comparison
-  - Time series of MPG trends
-  - MPG by cylinders analysis
-  - MPG vs Horsepower by origin
-- **Summary Statistics**: Quick overview of key metrics
-- **Data Table**: Interactive table with filtered data
-- **Responsive Design**: Beautiful, modern UI
-
-## Installation
-
-1. Install the required dependencies:
-
+NOTE: Pastikan anda sudah memiliki python dan git di dalam sistem anda.
+Untuk mengecek apakah anda memiliki python dan git, anda dapat menjalankan perintah berikut pada terminal:
 ```bash
-pip install -r requirements.txt
+python --version
+git --version
+```
+Jika anda tidak memiliki python atau git, anda dapat mengunjungi situs resmi python dan git untuk mengunduhnya.
+
+Python: https://www.python.org/
+Git: https://git-scm.com/
+
+1. Clone repository ini ke dalam direktori lokal Anda.
+ ```bash	
+ git clone https://github.com/ItSam77/Vinix-Modul-7.git
+ ```
+
+2. cd ke dalam direktori repository.
+ ```bash
+ cd Vinix-Modul-7
+ ```
+
+3. Buat virtual environment.
+Windows:
+```bash
+python -m venv venv
 ```
 
-## Running the Dashboard
-
-Run the Panel server with:
-
+Linux/Mac:
 ```bash
-panel serve app.py --show
+python3 -m venv venv
 ```
 
-This will:
-- Start a local server (typically at http://localhost:5006)
-- Automatically open the dashboard in your browser
-
-### Alternative run options:
-
-**Development mode with auto-reload:**
+4. Aktifkan virtual environment.
+Windows:
 ```bash
-panel serve app.py --show --autoreload
+venv\Scripts\activate
 ```
 
-**Custom port:**
+Linux/Mac:
 ```bash
-panel serve app.py --show --port 8080
+source venv/bin/activate
 ```
 
-**Allow external access:**
-```bash
-panel serve app.py --show --allow-websocket-origin=*
-```
+5. Install dependencies.
+ ```bash
+ pip install -r requirements.txt
+ ```
 
-## Usage
+6. Jalankan dashboard.
+ ```bash
+ panel serve app.py
+ ```
 
-1. Use the sidebar filters to explore the data:
-   - **Select Origin**: Filter by USA, Europe, or Japan
-   - **Model Year**: Adjust the year range slider
-   - **Cylinders**: Select specific cylinder counts
-
-2. Explore the visualizations tab to see relationships and trends
-
-3. Check the data table tab to view the filtered dataset
-
-## Dataset
-
-The Auto MPG dataset contains information about:
-- Fuel efficiency (MPG)
-- Engine specifications (cylinders, horsepower, displacement)
-- Vehicle characteristics (weight, acceleration)
-- Manufacturing details (model year, origin)
-- Car names
-
-## Technologies Used
-
-- **Panel**: Interactive dashboards
-- **hvPlot**: High-level plotting interface
-- **Pandas**: Data manipulation
-- **Bokeh**: Interactive visualizations
-
+7. Buka browser dan buka URL http://localhost:5006/ untuk melihat dashboard.

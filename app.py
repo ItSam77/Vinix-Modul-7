@@ -1,260 +1,458 @@
+"""
+PINIX7 - Auto MPG Interactive Dashboard
+Modul 7: Panel & hvPlot Dashboard
+
+Dashboard interaktif untuk analisis data Auto MPG dengan:
+- Minimal 3 pertanyaan analisis
+- Minimal 2 widget interaktif
+- Visualisasi menggunakan hvPlot
+- Layout menggunakan Panel
+"""
+
 import panel as pn
 import pandas as pd
 import hvplot.pandas
 import numpy as np
 
 # Initialize Panel extension
-pn.extension('tabulator', sizing_mode='stretch_width')
+pn.extension('tabulator')
 
-# Load the data
+# Load dataset
 df = pd.read_csv('auto-mpg.csv')
 
-# Clean the data - handle missing horsepower values
+# Data preprocessing
+# Handle missing values in horsepower
 df['horsepower'] = pd.to_numeric(df['horsepower'], errors='coerce')
-df = df.dropna(subset=['horsepower'])
+df['horsepower'].fillna(df['horsepower'].median(), inplace=True)
 
-# Add origin labels
+# Convert model year to actual year (70 -> 1970)
+df['year'] = df['model year'] + 1900
+
+# Map origin to country names
 origin_map = {1: 'USA', 2: 'Europe', 3: 'Japan'}
 df['origin_name'] = df['origin'].map(origin_map)
 
-# Create title
-title = pn.pane.Markdown("""
-# 🚗 Auto MPG Dashboard
-### Interactive visualization of automobile fuel efficiency data
-""", styles={'background-color': '#f0f0f0', 'padding': '10px', 'border-radius': '5px'})
+# ============================================================================
+# INTERACTIVE WIDGETS
+# ============================================================================
 
-# Summary statistics
-def create_summary_stats():
-    stats_html = f"""
-    <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0;'>
-        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px; color: white; text-align: center;'>
-            <h3 style='margin: 0; font-size: 2em;'>{len(df)}</h3>
-            <p style='margin: 5px 0 0 0;'>Total Cars</p>
-        </div>
-        <div style='background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 20px; border-radius: 10px; color: white; text-align: center;'>
-            <h3 style='margin: 0; font-size: 2em;'>{df['mpg'].mean():.1f}</h3>
-            <p style='margin: 5px 0 0 0;'>Avg MPG</p>
-        </div>
-        <div style='background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 20px; border-radius: 10px; color: white; text-align: center;'>
-            <h3 style='margin: 0; font-size: 2em;'>{df['horsepower'].mean():.0f}</h3>
-            <p style='margin: 5px 0 0 0;'>Avg Horsepower</p>
-        </div>
-        <div style='background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); padding: 20px; border-radius: 10px; color: white; text-align: center;'>
-            <h3 style='margin: 0; font-size: 2em;'>{df['weight'].mean():.0f}</h3>
-            <p style='margin: 5px 0 0 0;'>Avg Weight (lbs)</p>
-        </div>
-    </div>
-    """
-    return pn.pane.HTML(stats_html)
 
-# Interactive widgets
-origin_select = pn.widgets.MultiSelect(
-    name='Select Origin',
-    options=['All', 'USA', 'Europe', 'Japan'],
-    value=['All'],
-    size=4
-)
 
-year_slider = pn.widgets.IntRangeSlider(
-    name='Model Year',
-    start=int(df['model year'].min()),
-    end=int(df['model year'].max()),
-    value=(int(df['model year'].min()), int(df['model year'].max())),
+# Widget 2: Year Range Slider
+year_slider = pn.widgets.RangeSlider(
+    name='📅 Year Range',
+    start=int(df['year'].min()),
+    end=int(df['year'].max()),
+    value=(int(df['year'].min()), int(df['year'].max())),
     step=1
 )
 
-cylinders_select = pn.widgets.MultiSelect(
-    name='Cylinders',
-    options=['All'] + sorted(df['cylinders'].unique().tolist()),
-    value=['All'],
-    size=5
+# Widget 3: Cylinders Filter (Checkbox Group)
+cylinders_filter = pn.widgets.CheckBoxGroup(
+    name='⚙️ Filter by Cylinders',
+    value=sorted(df['cylinders'].unique().tolist()),
+    options=sorted(df['cylinders'].unique().tolist()),
+    inline=False
 )
 
-# Function to filter data based on widgets
-def get_filtered_data(origins, year_range, cylinders):
-    filtered_df = df.copy()
+# Widget 4: MPG Range Slider
+mpg_slider = pn.widgets.RangeSlider(
+    name='⛽ MPG Range',
+    start=float(df['mpg'].min()),
+    end=float(df['mpg'].max()),
+    value=(float(df['mpg'].min()), float(df['mpg'].max())),
+    step=1.0
+)
+
+# Reset Button
+reset_button = pn.widgets.Button(name='🔄 Reset Filters', button_type='warning')
+
+def reset_filters(event):
+    """Reset all filters to default values"""
+    year_slider.value = (int(df['year'].min()), int(df['year'].max()))
+    cylinders_filter.value = sorted(df['cylinders'].unique().tolist())
+    mpg_slider.value = (float(df['mpg'].min()), float(df['mpg'].max()))
+
+reset_button.on_click(reset_filters)
+
+# ============================================================================
+# DATA FILTERING FUNCTION
+# ============================================================================
+
+def get_filtered_data(year_range, cylinders_val, mpg_range):
+    """Filter data based on widget values"""
+    filtered = df.copy()
+    
+
     
     # Filter by year
-    filtered_df = filtered_df[(filtered_df['model year'] >= year_range[0]) & 
-                              (filtered_df['model year'] <= year_range[1])]
-    
-    # Filter by origin
-    if 'All' not in origins:
-        filtered_df = filtered_df[filtered_df['origin_name'].isin(origins)]
+    filtered = filtered[(filtered['year'] >= year_range[0]) & 
+                       (filtered['year'] <= year_range[1])]
     
     # Filter by cylinders
-    if 'All' not in cylinders:
-        filtered_df = filtered_df[filtered_df['cylinders'].isin(cylinders)]
+    if cylinders_val:
+        filtered = filtered[filtered['cylinders'].isin(cylinders_val)]
     
-    return filtered_df
+    # Filter by MPG
+    filtered = filtered[(filtered['mpg'] >= mpg_range[0]) & 
+                       (filtered['mpg'] <= mpg_range[1])]
+    
+    return filtered
 
-# Create interactive plots
-@pn.depends(origin_select.param.value, year_slider.param.value, cylinders_select.param.value)
-def create_scatter_plot(origins, year_range, cylinders):
-    filtered_df = get_filtered_data(origins, year_range, cylinders)
-    
-    return filtered_df.hvplot.scatter(
-        x='weight', y='mpg', 
-        c='horsepower',
-        cmap='viridis',
-        size=80,
-        alpha=0.7,
-        title='MPG vs Weight (colored by Horsepower)',
-        xlabel='Weight (lbs)',
-        ylabel='MPG',
-        width=600,
-        height=400,
-        colorbar=True
-    )
+# ============================================================================
+# STATISTICS CARDS
+# ============================================================================
 
-@pn.depends(origin_select.param.value, year_slider.param.value, cylinders_select.param.value)
-def create_mpg_distribution(origins, year_range, cylinders):
-    filtered_df = get_filtered_data(origins, year_range, cylinders)
+@pn.depends(year_slider.param.value, 
+            cylinders_filter.param.value, mpg_slider.param.value)
+def create_stats_cards(year_range, cylinders_val, mpg_range):
+    """Create dynamic statistics cards"""
+    filtered = get_filtered_data(year_range, cylinders_val, mpg_range)
     
-    return filtered_df.hvplot.hist(
+    stats = [
+        {
+            'icon': '📊',
+            'label': 'Total Mobil',
+            'value': f"{len(filtered)}",
+            'color': '#667eea'
+        },
+        {
+            'icon': '⛽',
+            'label': 'Average MPG',
+            'value': f"{filtered['mpg'].mean():.1f}",
+            'color': '#f093fb'
+        },
+        {
+            'icon': '🏎️',
+            'label': 'Avg Horsepower',
+            'value': f"{filtered['horsepower'].mean():.0f}",
+            'color': '#4facfe'
+        },
+        {
+            'icon': '⚖️',
+            'label': 'Avg Weight',
+            'value': f"{filtered['weight'].mean():.0f} lbs",
+            'color': '#43e97b'
+        },
+        {
+            'icon': '🏆',
+            'label': 'Max MPG',
+            'value': f"{filtered['mpg'].max():.1f}",
+            'color': '#fa709a'
+        }
+    ]
+    
+    cards = []
+    for stat in stats:
+        card_html = f"""
+        <div style="
+            background: linear-gradient(135deg, {stat['color']}22 0%, {stat['color']}44 100%);
+            border-left: 4px solid {stat['color']};
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        ">
+            <div style="font-size: 32px; margin-bottom: 10px;">{stat['icon']}</div>
+            <div style="font-size: 14px; color: #666; margin-bottom: 5px;">{stat['label']}</div>
+            <div style="font-size: 28px; font-weight: bold; color: {stat['color']};">{stat['value']}</div>
+        </div>
+        """
+        cards.append(pn.pane.HTML(card_html, width=200))
+    
+    return pn.Row(*cards, sizing_mode='stretch_width')
+
+# ============================================================================
+# QUESTION 1: Distribusi MPG
+# ============================================================================
+
+@pn.depends(year_slider.param.value, 
+            cylinders_filter.param.value, mpg_slider.param.value)
+def plot_mpg_distribution(year_range, cylinders_val, mpg_range):
+    """Q1: Bagaimana distribusi nilai MPG pada seluruh mobil?"""
+    filtered = get_filtered_data(year_range, cylinders_val, mpg_range)
+    
+    plot = filtered.hvplot.hist(
         y='mpg',
         bins=30,
-        title='MPG Distribution',
-        ylabel='Frequency',
-        xlabel='MPG',
+        title='📊 Q1: Distribusi Nilai MPG',
+        xlabel='Miles Per Gallon (MPG)',
+        ylabel='Frekuensi',
         color='#667eea',
-        width=600,
-        height=400
-    )
-
-@pn.depends(origin_select.param.value, year_slider.param.value, cylinders_select.param.value)
-def create_origin_comparison(origins, year_range, cylinders):
-    filtered_df = get_filtered_data(origins, year_range, cylinders)
-    
-    avg_by_origin = filtered_df.groupby('origin_name')['mpg'].mean().reset_index()
-    
-    return avg_by_origin.hvplot.bar(
-        x='origin_name',
-        y='mpg',
-        title='Average MPG by Origin',
-        xlabel='Origin',
-        ylabel='Average MPG',
-        color='origin_name',
-        cmap='Category10',
-        width=600,
+        alpha=0.7,
         height=400,
-        legend=False,
-        rot=45
-    )
-
-@pn.depends(origin_select.param.value, year_slider.param.value, cylinders_select.param.value)
-def create_time_series(origins, year_range, cylinders):
-    filtered_df = get_filtered_data(origins, year_range, cylinders)
-    
-    # Convert model year to actual year (70 = 1970, 82 = 1982)
-    filtered_df['year'] = filtered_df['model year'].apply(lambda x: 1900 + x if x > 50 else 2000 + x)
-    
-    avg_by_year = filtered_df.groupby('year')['mpg'].mean().reset_index()
-    
-    return avg_by_year.hvplot.line(
-        x='year',
-        y='mpg',
-        title='Average MPG Over Time',
-        xlabel='Year',
-        ylabel='Average MPG',
-        color='#f5576c',
-        line_width=3,
         width=600,
-        height=400
+        hover_cols=['mpg']
+    ).opts(
+        toolbar='above',
+        active_tools=[]
     )
+    
+    return plot
 
-@pn.depends(origin_select.param.value, year_slider.param.value, cylinders_select.param.value)
-def create_cylinders_plot(origins, year_range, cylinders):
-    filtered_df = get_filtered_data(origins, year_range, cylinders)
+# ============================================================================
+# QUESTION 2: MPG vs Cylinders
+# ============================================================================
+
+@pn.depends(year_slider.param.value, 
+            cylinders_filter.param.value, mpg_slider.param.value)
+def plot_mpg_by_cylinders(year_range, cylinders_val, mpg_range):
+    """Q2: Apakah ada perbedaan rata-rata MPG berdasarkan cylinders?"""
+    filtered = get_filtered_data(year_range, cylinders_val, mpg_range)
     
-    avg_by_cyl = filtered_df.groupby('cylinders')['mpg'].mean().reset_index()
+    # Calculate average MPG by cylinders
+    avg_mpg = filtered.groupby('cylinders')['mpg'].mean().reset_index()
+    avg_mpg = avg_mpg.sort_values('cylinders')
     
-    return avg_by_cyl.hvplot.bar(
+    plot = avg_mpg.hvplot.bar(
         x='cylinders',
         y='mpg',
-        title='Average MPG by Cylinders',
-        xlabel='Number of Cylinders',
+        title='⚙️ Q2: Rata-rata MPG Berdasarkan Jumlah Cylinders',
+        xlabel='Jumlah Cylinders',
+        ylabel='Average MPG',
+        color='#f093fb',
+        height=400,
+        width=600,
+        hover_cols=['cylinders', 'mpg']
+    ).opts(
+        toolbar='above',
+        xrotation=0,
+        active_tools=[]
+    )
+    
+    return plot
+
+# ============================================================================
+# QUESTION 3: Weight vs MPG
+# ============================================================================
+
+@pn.depends(year_slider.param.value, 
+            cylinders_filter.param.value, mpg_slider.param.value)
+def plot_weight_vs_mpg(year_range, cylinders_val, mpg_range):
+    """Q3: Bagaimana hubungan antara weight dan MPG?"""
+    filtered = get_filtered_data(year_range, cylinders_val, mpg_range)
+    
+    plot = filtered.hvplot.scatter(
+        x='weight',
+        y='mpg',
+        c='horsepower',
+        title='⚖️ Q3: Hubungan Weight dan MPG (colored by Horsepower)',
+        xlabel='Weight (lbs)',
+        ylabel='MPG',
+        cmap='viridis',
+        size=50,
+        alpha=0.6,
+        height=400,
+        width=600,
+        hover_cols=['car name', 'weight', 'mpg', 'horsepower']
+    ).opts(
+        toolbar='above',
+        colorbar=True,
+        active_tools=[]
+    )
+    
+    return plot
+
+# ============================================================================
+# QUESTION 4: Tren MPG per Tahun
+# ============================================================================
+
+@pn.depends(year_slider.param.value, 
+            cylinders_filter.param.value, mpg_slider.param.value)
+def plot_mpg_trend(year_range, cylinders_val, mpg_range):
+    """Q4: Bagaimana tren rata-rata MPG dari tahun ke tahun?"""
+    filtered = get_filtered_data(year_range, cylinders_val, mpg_range)
+    
+    # Calculate average MPG by year
+    avg_mpg_year = filtered.groupby('year')['mpg'].mean().reset_index()
+    
+    plot = avg_mpg_year.hvplot.line(
+        x='year',
+        y='mpg',
+        title='📈 Q4: Tren Rata-rata MPG dari Tahun ke Tahun',
+        xlabel='Tahun',
+        ylabel='Average MPG',
+        color='#4facfe',
+        line_width=3,
+        height=400,
+        width=600,
+        hover_cols=['year', 'mpg']
+    ).opts(
+        toolbar='above',
+        active_tools=[]
+    ) * avg_mpg_year.hvplot.scatter(
+        x='year',
+        y='mpg',
+        color='#4facfe',
+        size=100,
+        alpha=0.6
+    )
+    
+    return plot
+
+# ============================================================================
+# QUESTION 5: Perbandingan Origin
+# ============================================================================
+
+@pn.depends(year_slider.param.value, 
+            cylinders_filter.param.value, mpg_slider.param.value)
+def plot_origin_comparison(year_range, cylinders_val, mpg_range):
+    """Q5: Apakah ada perbedaan karakteristik mobil berdasarkan origin?"""
+    filtered = get_filtered_data(year_range, cylinders_val, mpg_range)
+    
+    # Average characteristics by origin
+    avg_by_origin = filtered.groupby('origin_name').agg({
+        'mpg': 'mean',
+        'horsepower': 'mean',
+        'weight': 'mean',
+        'cylinders': 'mean'
+    }).reset_index()
+    
+    plot = avg_by_origin.hvplot.bar(
+        x='origin_name',
+        y='mpg',
+        title='🌍 Q5: Rata-rata MPG Berdasarkan Origin',
+        xlabel='Origin',
         ylabel='Average MPG',
         color='#43e97b',
-        width=600,
-        height=400
-    )
-
-@pn.depends(origin_select.param.value, year_slider.param.value, cylinders_select.param.value)
-def create_horsepower_mpg_scatter(origins, year_range, cylinders):
-    filtered_df = get_filtered_data(origins, year_range, cylinders)
-    
-    return filtered_df.hvplot.scatter(
-        x='horsepower',
-        y='mpg',
-        by='origin_name',
-        title='MPG vs Horsepower by Origin',
-        xlabel='Horsepower',
-        ylabel='MPG',
-        width=600,
         height=400,
-        alpha=0.6,
-        size=60
+        width=600,
+        hover_cols=['origin_name', 'mpg']
+    ).opts(
+        toolbar='above',
+        xrotation=0,
+        active_tools=[]
     )
+    
+    return plot
 
-# Data table
-@pn.depends(origin_select.param.value, year_slider.param.value, cylinders_select.param.value)
-def create_data_table(origins, year_range, cylinders):
-    filtered_df = get_filtered_data(origins, year_range, cylinders)
+
+# ============================================================================
+# DATA EXPLORER TABLE
+# ============================================================================
+
+@pn.depends(year_slider.param.value, 
+            cylinders_filter.param.value, mpg_slider.param.value)
+def create_data_table(year_range, cylinders_val, mpg_range):
+    """Interactive data table"""
+    filtered = get_filtered_data(year_range, cylinders_val, mpg_range)
     
-    # Select relevant columns and format
-    display_df = filtered_df[['car name', 'mpg', 'cylinders', 'horsepower', 'weight', 'model year', 'origin_name']].copy()
-    display_df.columns = ['Car Name', 'MPG', 'Cylinders', 'Horsepower', 'Weight', 'Year', 'Origin']
+    # Select relevant columns
+    display_cols = ['car name', 'mpg', 'cylinders', 'horsepower', 
+                   'weight', 'year', 'origin_name']
+    table_data = filtered[display_cols].copy()
     
-    return pn.widgets.Tabulator(
-        display_df,
-        page_size=10,
+    # Rename columns for better display
+    table_data.columns = ['Car Name', 'MPG', 'Cylinders', 'Horsepower', 
+                         'Weight', 'Year', 'Origin']
+    
+    table = pn.widgets.Tabulator(
+        table_data,
         pagination='remote',
-        sizing_mode='stretch_width'
+        page_size=20,
+        sizing_mode='stretch_width',
+        height=600
     )
+    
+    return table
 
-# Create layout
-controls = pn.Column(
-    pn.pane.Markdown("## 🎛️ Filters", styles={'background-color': '#f8f9fa', 'padding': '10px', 'border-radius': '5px'}),
-    origin_select,
+# ============================================================================
+# LAYOUT CONSTRUCTION
+# ============================================================================
+
+# Title and description
+title = pn.pane.Markdown("""
+# 🚗 PINIX7 Auto MPG Dashboard
+
+Dashboard interaktif untuk analisis data Auto MPG dengan visualisasi dinamis dan filter interaktif.
+
+---
+""", sizing_mode='stretch_width')
+
+# Sidebar with filters
+sidebar = pn.Column(
+    pn.pane.Markdown("## 🎛️ Interactive Filters"),
+    pn.layout.Divider(),
     year_slider,
-    cylinders_select,
-    width=250,
-    styles={'background-color': '#ffffff', 'padding': '15px', 'border-radius': '10px', 'box-shadow': '0 2px 4px rgba(0,0,0,0.1)'}
+    pn.layout.Divider(),
+    pn.pane.Markdown("### ⚙️ Filter by Cylinders"),
+    cylinders_filter,
+    pn.layout.Divider(),
+    mpg_slider,
+    pn.layout.Divider(),
+    reset_button,
+    pn.pane.Markdown("""
+    ---
+    ### 💡 Tips:
+    - Gunakan filter untuk eksplorasi data
+    - Hover pada plot untuk detail
+    - Reset untuk kembali ke default
+    """),
+    width=300
 )
 
-# Main content with tabs
-plots_tab = pn.Column(
-    pn.Row(create_scatter_plot, create_mpg_distribution),
-    pn.Row(create_origin_comparison, create_time_series),
-    pn.Row(create_cylinders_plot, create_horsepower_mpg_scatter),
+# Analysis tab
+analysis_tab = pn.Column(
+    pn.pane.Markdown("## 📊 Analisis Data Auto MPG"),
+    create_stats_cards,
+    pn.layout.Divider(),
+    pn.Row(
+        plot_mpg_distribution,
+        plot_mpg_by_cylinders,
+        sizing_mode='stretch_width'
+    ),
+    pn.layout.Divider(),
+    pn.Row(
+        plot_weight_vs_mpg,
+        plot_mpg_trend,
+        sizing_mode='stretch_width'
+    ),
+    pn.layout.Divider(),
+    pn.Row(
+        plot_origin_comparison,
+        sizing_mode='stretch_width'
+    ),
+    sizing_mode='stretch_width'
 )
 
+# Data explorer tab
 data_tab = pn.Column(
-    pn.pane.Markdown("### 📊 Filtered Data Table"),
-    create_data_table
+    pn.pane.Markdown("## 📋 Data Explorer"),
+    pn.pane.Markdown("Tabel interaktif dengan fitur sorting, pagination, dan search."),
+    create_data_table,
+    sizing_mode='stretch_width'
 )
 
+# Main tabs
 tabs = pn.Tabs(
-    ('📈 Visualizations', plots_tab),
-    ('📋 Data Table', data_tab),
-    dynamic=True
+    ('📊 Analysis Dashboard', analysis_tab),
+    ('📋 Data Explorer', data_tab),
+    sizing_mode='stretch_width'
 )
 
-main_content = pn.Column(
-    create_summary_stats(),
-    tabs
+# Main layout
+main_layout = pn.Column(
+    title,
+    tabs,
+    sizing_mode='stretch_width'
 )
 
-# Final template
+# ============================================================================
+# TEMPLATE
+# ============================================================================
+
 template = pn.template.FastListTemplate(
-    title='Auto MPG Dashboard',
-    sidebar=[controls],
-    main=[title, main_content],
+    title='PINIX7 Auto MPG Dashboard',
+    sidebar=[sidebar],
+    main=[main_layout],
     accent_base_color='#667eea',
     header_background='#667eea',
 )
 
 # Make it servable
 template.servable()
+
+# For running with `panel serve app.py`
+if __name__ == '__main__':
+    template.show()
 
