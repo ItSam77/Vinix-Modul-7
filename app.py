@@ -9,6 +9,7 @@ Dashboard interaktif untuk analisis data Auto MPG dengan:
 - Layout menggunakan Panel
 """
 
+
 import panel as pn
 import pandas as pd
 import hvplot.pandas
@@ -18,7 +19,7 @@ import numpy as np
 pn.extension('tabulator')
 
 # Load dataset
-df = pd.read_csv('auto-mpg.csv')
+df = pd.read_csv('auto-mpg-new.csv')
 
 # Data preprocessing
 # Handle missing values in horsepower
