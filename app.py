@@ -398,13 +398,11 @@ analysis_tab = pn.Column(
     create_stats_cards,
     pn.layout.Divider(),
     pn.Row(
-        plot_mpg_distribution,
-        plot_mpg_by_cylinders,
+        plot_weight_vs_mpg,
         sizing_mode='stretch_width'
     ),
     pn.layout.Divider(),
     pn.Row(
-        plot_weight_vs_mpg,
         plot_mpg_trend,
         sizing_mode='stretch_width'
     ),
