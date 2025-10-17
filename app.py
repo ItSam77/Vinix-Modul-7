@@ -163,65 +163,65 @@ def create_stats_cards(year_range, cylinders_val, mpg_range):
     
     return pn.Row(*cards, sizing_mode='stretch_width')
 
-# ============================================================================
-# QUESTION 1: Distribusi MPG
-# ============================================================================
+# # ============================================================================
+# # QUESTION 1: Distribusi MPG
+# # ============================================================================
 
-@pn.depends(year_slider.param.value, 
-            cylinders_filter.param.value, mpg_slider.param.value)
-def plot_mpg_distribution(year_range, cylinders_val, mpg_range):
-    """Q1: Bagaimana distribusi nilai MPG pada seluruh mobil?"""
-    filtered = get_filtered_data(year_range, cylinders_val, mpg_range)
+# @pn.depends(year_slider.param.value, 
+#             cylinders_filter.param.value, mpg_slider.param.value)
+# def plot_mpg_distribution(year_range, cylinders_val, mpg_range):
+#     """Q1: Bagaimana distribusi nilai MPG pada seluruh mobil?"""
+#     filtered = get_filtered_data(year_range, cylinders_val, mpg_range)
     
-    plot = filtered.hvplot.hist(
-        y='mpg',
-        bins=30,
-        title='📊 Q1: Distribusi Nilai MPG',
-        xlabel='Miles Per Gallon (MPG)',
-        ylabel='Frekuensi',
-        color='#667eea',
-        alpha=0.7,
-        height=400,
-        width=600,
-        hover_cols=['mpg']
-    ).opts(
-        toolbar='above',
-        active_tools=[]
-    )
+#     plot = filtered.hvplot.hist(
+#         y='mpg',
+#         bins=30,
+#         title='📊 Q1: Distribusi Nilai MPG',
+#         xlabel='Miles Per Gallon (MPG)',
+#         ylabel='Frekuensi',
+#         color='#667eea',
+#         alpha=0.7,
+#         height=400,
+#         width=600,
+#         hover_cols=['mpg']
+#     ).opts(
+#         toolbar='above',
+#         active_tools=[]
+#     )
     
-    return plot
+#     return plot
 
-# ============================================================================
-# QUESTION 2: MPG vs Cylinders
-# ============================================================================
+# # ============================================================================
+# # QUESTION 2: MPG vs Cylinders
+# # ============================================================================
 
-@pn.depends(year_slider.param.value, 
-            cylinders_filter.param.value, mpg_slider.param.value)
-def plot_mpg_by_cylinders(year_range, cylinders_val, mpg_range):
-    """Q2: Apakah ada perbedaan rata-rata MPG berdasarkan cylinders?"""
-    filtered = get_filtered_data(year_range, cylinders_val, mpg_range)
+# @pn.depends(year_slider.param.value, 
+#             cylinders_filter.param.value, mpg_slider.param.value)
+# def plot_mpg_by_cylinders(year_range, cylinders_val, mpg_range):
+#     """Q2: Apakah ada perbedaan rata-rata MPG berdasarkan cylinders?"""
+#     filtered = get_filtered_data(year_range, cylinders_val, mpg_range)
     
-    # Calculate average MPG by cylinders
-    avg_mpg = filtered.groupby('cylinders')['mpg'].mean().reset_index()
-    avg_mpg = avg_mpg.sort_values('cylinders')
+#     # Calculate average MPG by cylinders
+#     avg_mpg = filtered.groupby('cylinders')['mpg'].mean().reset_index()
+#     avg_mpg = avg_mpg.sort_values('cylinders')
     
-    plot = avg_mpg.hvplot.bar(
-        x='cylinders',
-        y='mpg',
-        title='⚙️ Q2: Rata-rata MPG Berdasarkan Jumlah Cylinders',
-        xlabel='Jumlah Cylinders',
-        ylabel='Average MPG',
-        color='#f093fb',
-        height=400,
-        width=600,
-        hover_cols=['cylinders', 'mpg']
-    ).opts(
-        toolbar='above',
-        xrotation=0,
-        active_tools=[]
-    )
+#     plot = avg_mpg.hvplot.bar(
+#         x='cylinders',
+#         y='mpg',
+#         title='⚙️ Q2: Rata-rata MPG Berdasarkan Jumlah Cylinders',
+#         xlabel='Jumlah Cylinders',
+#         ylabel='Average MPG',
+#         color='#f093fb',
+#         height=400,
+#         width=600,
+#         hover_cols=['cylinders', 'mpg']
+#     ).opts(
+#         toolbar='above',
+#         xrotation=0,
+#         active_tools=[]
+#     )
     
-    return plot
+#     return plot
 
 # ============================================================================
 # QUESTION 3: Weight vs MPG
