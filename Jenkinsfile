@@ -1,6 +1,5 @@
 pipeline {
   agent any
-  options { timestamps() }
 
   environment {
     VENV_DIR = "${WORKSPACE}/.venv"
