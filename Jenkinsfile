@@ -20,7 +20,25 @@ pipeline {
       steps {
         sh '''
           set -eux
-          ${PYTHON} -m venv "${VENV_DIR}"
+          
+          # Try to create venv, if it fails, install python3-venv
+          if ! ${PYTHON} -m venv "${VENV_DIR}" 2>/dev/null; then
+            echo "python3-venv not available, trying to install..."
+            
+            # Check if we have sudo access
+            if command -v sudo >/dev/null 2>&1; then
+              sudo apt update
+              sudo apt install -y python3-venv python3-pip
+            else
+              # Try without sudo (might work if already root)
+              apt update
+              apt install -y python3-venv python3-pip
+            fi
+            
+            # Try creating venv again
+            ${PYTHON} -m venv "${VENV_DIR}"
+          fi
+          
           . "${VENV_DIR}/bin/activate"
           python -m pip install --upgrade pip setuptools wheel
         '''
